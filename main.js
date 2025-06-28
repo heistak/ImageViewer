@@ -16,6 +16,7 @@ let currentImageIndex = 0;
 let currentDirectory = '';
 
 function registerGlobalShortcuts() {
+  console.log('[main.js] Attempting to register global shortcuts...');
   if (!globalShortcut.isRegistered('Right')) {
     globalShortcut.register('Right', () => {
       console.log('[main.js] Global shortcut triggered: ArrowRight');
@@ -73,6 +74,7 @@ function registerGlobalShortcuts() {
 }
 
 function unregisterGlobalShortcuts() {
+  console.log('[main.js] Attempting to unregister global shortcuts...');
   globalShortcut.unregister('Right');
   globalShortcut.unregister('Left');
   globalShortcut.unregister('Escape');
@@ -129,7 +131,7 @@ function createMainWindow() {
   });
 
   mainWindow.on('focus', () => {
-    console.log('[main.js] Main window focused.');
+    console.log('[main.js] Main window focused. isAppFullscreen:', isAppFullscreen);
     if (!isAppFullscreen) {
       console.log('[main.js] Registering global shortcuts due to main window focus.');
       registerGlobalShortcuts();
@@ -137,7 +139,7 @@ function createMainWindow() {
   });
 
   mainWindow.on('blur', () => {
-    console.log('[main.js] Main window blurred.');
+    console.log('[main.js] Main window blurred. isAppFullscreen:', isAppFullscreen);
     if (!isAppFullscreen) {
       console.log('[main.js] Unregistering global shortcuts due to main window blur.');
       unregisterGlobalShortcuts();
