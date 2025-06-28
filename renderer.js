@@ -86,20 +86,23 @@ document.addEventListener('keydown', (event) => {
   } else if (event.key === 'Escape') {
     ipcRenderer.send('exit-fullscreen');
   } else if (event.key === 'Enter') { // Handle Enter key for fullscreen
-    if (images.length > 0) {
-      const imagePath = path.join(currentDirectory, images[currentImageIndex]);
-      const imageCountText = `${currentImageIndex + 1}/${images.length}`;
-      // Send initial dimensions to main process
-      const tempImage = new Image();
-      tempImage.onload = () => {
-        ipcRenderer.send('toggle-fullscreen', imagePath, imageCountText, tempImage.naturalWidth, tempImage.naturalHeight);
-      };
-      tempImage.onerror = () => {
-        ipcRenderer.send('toggle-fullscreen', imagePath, imageCountText, 0, 0);
-      };
-      tempImage.src = imagePath;
-    } else {
-      ipcRenderer.send('toggle-fullscreen', null, null, 0, 0);
+    // Only go fullscreen if no button is focused
+    if (document.activeElement.tagName !== 'BUTTON') {
+      if (images.length > 0) {
+        const imagePath = path.join(currentDirectory, images[currentImageIndex]);
+        const imageCountText = `${currentImageIndex + 1}/${images.length}`;
+        // Send initial dimensions to main process
+        const tempImage = new Image();
+        tempImage.onload = () => {
+          ipcRenderer.send('toggle-fullscreen', imagePath, imageCountText, tempImage.naturalWidth, tempImage.naturalHeight);
+        };
+        tempImage.onerror = () => {
+          ipcRenderer.send('toggle-fullscreen', imagePath, imageCountText, 0, 0);
+        };
+        tempImage.src = imagePath;
+      } else {
+        ipcRenderer.send('toggle-fullscreen', null, null, 0, 0);
+      }
     }
   } else if (event.key === 'F5') { // Handle F5 for rescan
     rescanFolder();
@@ -142,9 +145,18 @@ showExifButton.addEventListener('click', () => {
   console.log('[renderer.js] Show EXIF button clicked');
   if (images.length > 0) {
     const imagePath = path.join(currentDirectory, images[currentImageIndex]);
+    // Check if it's a WebP image
+    if (imagePath.toLowerCase().endsWith('.webp')) {
+      exifComment.textContent = 'EXIF data extraction for WebP images is not fully supported yet.';
+      exifModal.style.display = 'block';
+      return;
+    }
+
     fs.readFile(imagePath, (err, data) => {
       if (err) {
         console.error(err);
+        exifComment.textContent = 'Error reading image file for EXIF data.';
+        exifModal.style.display = 'block';
         return;
       }
       try {
@@ -196,6 +208,12 @@ ipcRenderer.on('navigate-fullscreen', (event, direction) => {
 ipcRenderer.on('update-image-from-main', () => {
   console.log('[renderer.js] Received update-image-from-main from main process.');
   updateImage();
+});
+
+// New IPC listener for rescan folder from global shortcut
+ipcRenderer.on('handle-rescan', () => {
+  console.log('[renderer.js] Received handle-rescan IPC.');
+  rescanFolder();
 });
 
 function rescanFolder() {

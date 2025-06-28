@@ -1,3 +1,4 @@
+
 const { app, BrowserWindow, ipcMain, shell, dialog, Menu, screen, globalShortcut } = require('electron');
 const path = require('path');
 const fs = require('fs'); // Import fs module
@@ -48,6 +49,16 @@ function registerGlobalShortcuts() {
     });
     console.log(`[main.js] Global shortcut 'Escape' registered: ${globalShortcut.isRegistered('Escape')}`);
   }
+  if (!globalShortcut.isRegistered('F5')) {
+    globalShortcut.register('F5', () => {
+      console.log('[main.js] Global shortcut triggered: F5');
+      if (mainWindow) {
+        console.log('[main.js] Sending handle-rescan IPC to main window renderer.');
+        mainWindow.webContents.send('handle-rescan');
+      }
+    });
+    console.log(`[main.js] Global shortcut 'F5' registered: ${globalShortcut.isRegistered('F5')}`);
+  }
   if (!globalShortcut.isRegistered('F12')) {
     globalShortcut.register('F12', () => {
       console.log('[main.js] Global shortcut triggered: F12');
@@ -65,6 +76,7 @@ function unregisterGlobalShortcuts() {
   globalShortcut.unregister('Right');
   globalShortcut.unregister('Left');
   globalShortcut.unregister('Escape');
+  globalShortcut.unregister('F5');
   globalShortcut.unregister('F12');
   console.log('[main.js] All global shortcuts unregistered.');
 }
@@ -389,5 +401,13 @@ ipcMain.on('navigate-fullscreen', (event, direction) => {
   if (isAppFullscreen) {
     // Send a message to the main window's renderer to handle navigation
     mainWindow.webContents.send('handle-navigation', direction);
+  }
+});
+
+// New IPC listener for rescan folder from global shortcut
+ipcMain.on('rescan-folder', () => {
+  console.log('[main.js] Received rescan-folder IPC.');
+  if (mainWindow) {
+    mainWindow.webContents.send('handle-rescan');
   }
 });
