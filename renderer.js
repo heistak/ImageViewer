@@ -1,3 +1,4 @@
+
 const fs = require('fs');
 const path = require('path');
 const { ipcRenderer } = require('electron');
@@ -205,9 +206,37 @@ ipcRenderer.on('navigate-fullscreen', (event, direction) => {
 });
 
 // New IPC listener to update image from main process (after global shortcut navigation)
-ipcRenderer.on('update-image-from-main', () => {
+ipcRenderer.on('update-image-from-main', (event, imagePath, imageCountText) => {
   console.log('[renderer.js] Received update-image-from-main from main process.');
-  updateImage();
+  // Update local state based on main process's current image
+  const fileName = path.basename(imagePath);
+  const newIndex = images.indexOf(fileName);
+  if (newIndex !== -1) {
+    currentImageIndex = newIndex;
+  } else {
+    // If image not found in current list, rescan and then update
+    rescanFolder();
+    return; // Exit to avoid immediate update with potentially wrong index
+  }
+
+  image.src = imagePath;
+  imageCounter.textContent = imageCountText;
+  document.title = `Image Viewer - ${fileName}`;
+  fullscreenOverlay.textContent = `[${imageCountText}] ${fileName}`;
+
+  // Get image dimensions after it loads in the DOM
+  image.onload = () => {
+    const imageWidth = image.naturalWidth;
+    const imageHeight = image.naturalHeight;
+    console.log(`[renderer.js] Image loaded: ${imagePath}, Dimensions: ${imageWidth}x${imageHeight}`);
+    // Always notify main process about image change, it will decide if fullscreen display needs update
+    ipcRenderer.send('update-fullscreen-display', imagePath, imageCountText, imageWidth, imageHeight);
+  };
+  image.onerror = (error) => {
+    console.error(`[renderer.js] Error loading image: ${imagePath}`, error);
+    // Send with 0 dimensions if error, main process will handle fallback
+    ipcRenderer.send('update-fullscreen-display', imagePath, imageCountText, 0, 0);
+  };
 });
 
 // New IPC listener for rescan folder from global shortcut

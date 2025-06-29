@@ -1,4 +1,3 @@
-
 const { app, BrowserWindow, ipcMain, shell, dialog, Menu, screen, globalShortcut } = require('electron');
 const path = require('path');
 const fs = require('fs'); // Import fs module
